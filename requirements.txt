@@ -1,0 +1,19 @@
+# Python 3.10+
+# Install: pip install -r requirements.txt
+# Then: python -m spacy download en_core_web_sm
+datasets==2.19.0
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.4.2
+scipy==1.13.0
+spacy==3.7.4
+# After install: python -m spacy download en_core_web_sm
+transformers==4.40.0
+sentence-transformers==2.7.0
+torch==2.3.0
+langdetect==1.0.9
+matplotlib==3.8.4
+seaborn==0.13.2
+jupyter==1.0.0
+ipykernel==6.29.4
+faiss-cpu==1.8.0
