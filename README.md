@@ -1,143 +1,150 @@
-# Member 2 — NLP / ML Engineer (Milestone 2: Baseline, Embeddings & Retrieval)
+# RAG Pipeline
 
-Pipeline implementing: SentenceTransformer embeddings, three tuned TF-IDF
-baseline classifiers (Logistic Regression, Random Forest, Linear SVM),
-a cosine-similarity FAISS index, evaluation metrics, MLflow experiment
-tracking (SQLite backend), and a final comparison report.
+Branch: `feature/rag-pipeline`
 
-## Run order
+## Background
+
+This is a multi-part team project. The data pipeline and the classical baselines, embeddings, and FAISS index were already completed before this branch started. What's implemented here is the next phase: a RAG system built on top of that existing work.
+
+## What this does
+
+It retrieves similar resolved tickets from the training corpus and uses an LLM to predict the queue and generate a customer-facing answer for a new ticket:
+
+```
+New ticket (subject + body)
+        |
+        v
+  clean_text + embed (all-MiniLM-L6-v2)
+        |
+        v
+  FAISS search over train.csv embeddings (top-K)
+        |
+        v
+  Prompt built from ticket + retrieved tickets
+        |
+        v
+  Groq LLM (llama-3.1-8b-instant)
+        |
+        v
+  { predicted_queue, generated_answer }
+```
+
+The system answers two questions per ticket: which queue should this go to, and what should the agent respond.
+
+## Critical design decision: index scope
+
+The FAISS index is built only on `train.csv` (19,679 rows), not on `cleaned_corpus.csv` (28,113 rows, which also contains val and test data). Index position `i` corresponds to `train.csv` row `i`.
+
+This is intentional. If the index included test data, retrieving a test ticket would surface itself with similarity 1.0, and the system would just be copying the answer instead of generalizing. Keeping the index limited to train data makes the evaluation an honest measure of how the system handles tickets it has never seen.
+
+## Project structure
+
+```
+src/
+├── config/
+│   └── settings.py            Pydantic settings, loaded from .env
+├── models/
+│   ├── ticket.py               Ticket, RetrievedTicket schemas
+│   └── rag_response.py         RAGResponse schema
+├── services/
+│   ├── embedding/
+│   │   └── embedder.py         SentenceTransformer wrapper, loaded once
+│   ├── retrieval/
+│   │   └── faiss_retriever.py  FAISS search + corpus lookup
+│   ├── llm/
+│   │   ├── llm_interface.py    Abstract LLM interface
+│   │   └── groq_provider.py    Groq implementation
+│   └── rag/
+│       ├── prompt_builder.py   Builds the LLM prompt from ticket + context
+│       └── rag_pipeline.py     Orchestrator: embed → retrieve → generate
+├── evaluation/
+│   ├── metrics.py               F1, accuracy, BLEU, ROUGE-L
+│   └── evaluator.py             Runs the pipeline over a stratified test sample
+└── utils/
+    └── helpers.py                clean_text(), mirrors the preprocessing pipeline
+
+scripts/
+├── test_rag.py          Smoke test on 3 sample tickets
+├── evaluate_rag.py      Full evaluation run, saves results to reports/
+└── generate_report.py   Builds the RAG vs baseline comparison report
+
+reports/
+├── rag_evaluation_results.json
+└── rag_vs_baseline.md
+```
+
+Each layer has one job. The LLM and the vector store are both behind interfaces, so swapping Groq for another provider or FAISS for another vector store later only means writing a new provider class, not touching the pipeline logic.
+
+## Why each layer exists
+
+**Embedder** turns text into a normalized 384-dim vector using the same model and settings (`normalize_embeddings=True`) that built the FAISS index. The model loads once at startup, not on every call.
+
+**FAISSRetriever** searches the index and pulls the matching rows from `train.csv`. Scores are clamped to `[0.0, 1.0]` since cosine similarity should fall in that range but floating point noise can occasionally push values slightly outside it.
+
+**PromptBuilder** assembles the retrieved tickets and the new ticket into a single prompt and instructs the LLM to return strict JSON with exactly two keys: `predicted_queue` and `generated_answer`.
+
+**GroqProvider** calls the Groq API at `temperature=0.0` for consistent, repeatable output, since this is a classification-adjacent task rather than a creative one.
+
+**RAGPipeline** is the only piece that knows about all the other pieces. It calls them in order and parses the LLM's JSON response, extracting the JSON object directly with a regex rather than relying on the model to fence its output a specific way.
+
+**Evaluator** draws a stratified sample from `test.csv` (so every queue is represented), runs the full pipeline on each ticket, and computes queue F1/accuracy plus BLEU and ROUGE-L for the generated answers. Failed rows are skipped and excluded from the reported sample size rather than aborting the whole run.
+
+## Setup
 
 ```bash
 pip install -r requirements.txt
-
-python 01_generate_embeddings.py   # needs internet access to huggingface.co
-python 02_baseline_model.py        # tunes & trains LogReg, RF, SVM on val; saves to models/
-python 03_faiss_index.py           # builds IndexFlatIP (cosine similarity) over embeddings
-python 04_evaluation.py            # test-set classification metrics + retrieval metrics
-python 05_mlflow_tracking.py       # logs all 4 runs to sqlite:///mlflow.db
-python 06_final_report.py          # writes reports/final_summary.{json,md}
 ```
 
-Run `01_generate_embeddings.py` somewhere with HuggingFace Hub access
-(Colab, local machine, Azure ML). It downloads `all-MiniLM-L6-v2` once
-and caches it; every later step only reads the saved `.npy` files, so
-they can run anywhere once embeddings exist — including network-restricted
-sandboxes.
-
-## Inputs (from Milestone 1)
+Create a `.env` file:
 
 ```
-data/processed/cleaned_corpus.csv
-data/processed/train.csv   (19,679 rows)
-data/processed/val.csv     (4,217 rows)
-data/processed/test.csv    (4,217 rows)
+GROQ_API_KEY=your_key_here
+MODEL_NAME=llama-3.1-8b-instant
+EMBED_MODEL=all-MiniLM-L6-v2
+TOP_K=5
+EVAL_SAMPLE_SIZE=250
+FAISS_INDEX_PATH=faiss/faiss.index
+TRAIN_CSV_PATH=data/processed/train.csv
+TEST_CSV_PATH=data/processed/test.csv
 ```
 
-## Outputs
+Required from the earlier pipeline stage, generated locally and not committed to git:
 
-| Path | Description |
-|---|---|
-| `embeddings/body_embeddings.npy` | Full-corpus SentenceTransformer embeddings (N × 384) |
-| `embeddings/train_embeddings.npy` | Train split embeddings (19,679 × 384) |
-| `embeddings/val_embeddings.npy` | Val split embeddings (4,217 × 384) |
-| `embeddings/test_embeddings.npy` | Test split embeddings (4,217 × 384) |
-| `models/tfidf_logreg_baseline.pkl` | TF-IDF + Logistic Regression (tuned on val) |
-| `models/tfidf_rf_baseline.pkl` | TF-IDF + Random Forest (tuned on val, joblib-compressed) |
-| `models/tfidf_svm_baseline.pkl` | TF-IDF + Linear SVM (tuned on val) |
-| `models/test_predictions.csv` | Test-set predictions from all three models |
-| `models/tuning_results.json` | Every validation grid candidate tried, for all 3 models |
-| `plots/confusion_matrix_logreg.png` | Confusion matrix, test set |
-| `plots/confusion_matrix_rf.png` | Confusion matrix, test set |
-| `plots/confusion_matrix_svm.png` | Confusion matrix, test set |
-| `faiss/faiss.index` | FAISS `IndexFlatIP` (cosine similarity) over train embeddings |
-| `reports/evaluation_results.json` | Accuracy / Precision / Recall / F1 + retrieval stats (all 3 models) |
-| `reports/final_summary.json` / `.md` | Ranked model comparison + recommendation |
-| `mlflow.db` | MLflow SQLite backend store — 4 runs (LogReg, RF, SVM, FAISS retrieval) |
+```
+faiss/faiss.index
+embeddings/train_embeddings.npy
+data/processed/train.csv
+data/processed/test.csv
+```
 
-## Viewing MLflow results
+## Running it
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///mlflow.db
+python scripts/test_rag.py        # sanity check on 3 tickets
+python scripts/evaluate_rag.py    # full evaluation, saves reports/rag_evaluation_results.json
+python scripts/generate_report.py # builds reports/rag_vs_baseline.md
 ```
 
-## Model selection methodology
+## Results
 
-All three baselines are tuned with a manual grid search **on the
-validation set only** (the test set is touched exactly once, after each
-model's winning configuration is locked in):
+Evaluated on a stratified sample of 250 tickets from the test set.
 
-- **Logistic Regression** — grid over `C` and `class_weight`.
-- **Random Forest** — grid over `n_estimators`, `min_samples_leaf`, `max_depth`.
-- **Linear SVM (`LinearSVC`)** — grid over `C` and `class_weight`.
+| Metric | Linear SVM (baseline) | RAG |
+|---|---|---|
+| Queue weighted F1 | 0.7311 | 0.7223 |
+| Answer BLEU | not applicable | 0.4141 |
+| Answer ROUGE-L | not applicable | 0.5922 |
 
-Each grid candidate is scored by weighted F1 on `val.csv`; the best
-config per model family is refit and evaluated once on `test.csv`.
-Every candidate tried is logged in `models/tuning_results.json` for
-auditability.
+Queue classification drops by about 1.2 percent compared to the dedicated SVM baseline. This is expected. The RAG system is not a trained classifier, it infers the queue from retrieved context, so a small accuracy cost in exchange for generated answers is a reasonable trade rather than a regression. Answer generation has no equivalent in the baseline, since it never produced customer-facing responses.
 
-## Results (test set, weighted F1, best config per model)
+## Known limitations
 
-| Rank | Model | Accuracy | Precision | Recall | F1 (weighted) |
-|---|---|---|---|---|---|
-| 1st | **Linear SVM** | 0.732 | 0.742 | 0.732 | **0.731** |
-| 2nd | Logistic Regression | 0.700 | 0.723 | 0.700 | 0.697 |
-| 3rd | Random Forest | 0.682 | 0.714 | 0.682 | 0.684 |
+**Likely near-duplicate tickets between train and test.** During the smoke test, one test ticket retrieved a train ticket with cosine similarity 1.0000, meaning a near-identical or templated ticket exists in both splits. This inflates retrieval metrics (consistent with the baseline stage's high Retrieval@5 of 0.9028) and should be noted as a dataset characteristic rather than a property of the retrieval system.
 
-**Recommended baseline: Linear SVM** (`tfidf_svm_baseline.pkl`, `C=1.0`,
-`class_weight=None`) — highest test weighted F1 of the three, selected
-purely on validation performance with no test-set leakage. See
-`reports/final_summary.md` for the full breakdown, retrieval metrics,
-and per-class detail.
+**Placeholder tokens can leak into generated answers.** The dataset contains unresolved placeholders such as `<tel_num>` in some ground-truth answers. When a retrieved ticket contains one, the LLM has occasionally copied it verbatim instead of writing a natural sentence. The prompt can be tightened to explicitly instruct the model to ignore placeholder tokens in retrieved context.
 
-## Retrieval (FAISS, IndexFlatIP / cosine similarity)
+**Query and index text normalization now match.** Queries are passed through the same `clean_text()` normalization used upstream before embedding, keeping them consistent with how the indexed `clean_body` text was embedded.
 
-| Metric | Value |
-|---|---|
-| Retrieval@1 | 0.818 |
-| Retrieval@3 | 0.872 |
-| Retrieval@5 | 0.903 |
-| Retrieval@10 | 0.942 |
-| MRR@10 | 0.853 |
-| Mean top-1 cosine similarity | 0.934 |
+## Next steps
 
-## Key implementation notes
-
-- **Embeddings**: real `SentenceTransformer('all-MiniLM-L6-v2')` output,
-  `normalize_embeddings=True` (unit L2 norm, verified at index-build time).
-  Text column: `clean_body` (falls back to `lemmatized_body` if absent).
-- **FAISS metric**: `IndexFlatIP`, not `IndexFlatL2`. For unit-normalized
-  vectors, `||a-b||^2 = 2 - 2(a·b)`, so ranking by smallest L2 distance and
-  by largest inner product produce identical neighbor orderings — but
-  inner product on unit vectors **is** cosine similarity by definition,
-  giving directly interpretable [0,1] scores instead of unitless distances.
-  See the docstring in `03_faiss_index.py` for the full derivation.
-- **LogReg convergence fix**: `max_iter` raised from 1000 → 4000, and the
-  grid search uses `solver='lbfgs'` (multiclass-native, converges in
-  60–250 iterations on this data — far inside the new budget) instead of
-  `saga`, which needed thousands of iterations per candidate and made an
-  8-way grid impractically slow without changing the result. Every run
-  asserts `n_iter_ < max_iter` after fitting to verify convergence
-  explicitly rather than just suppressing the warning.
-- **Random Forest depth**: `max_depth=None` (unbounded) was tested and
-  excluded from the grid — on this 50k-feature sparse TF-IDF matrix it
-  produces extremely deep, slow-to-fit trees for no measurable F1 gain
-  over depth 30–50. The chosen config (`max_depth=50`) is depth-capped
-  for tractable train time with a compressed (joblib) ~13–17MB artifact.
-- **MLflow backend**: `sqlite:///mlflow.db`, replacing the deprecated
-  plain file store (`file:mlruns`). Params logged per run are read
-  dynamically from `models/tuning_results.json`, so they can never drift
-  out of sync with what was actually trained.
-
-## requirements.txt
-
-See `requirements.txt` for pinned versions (pandas, numpy, scikit-learn,
-sentence-transformers, torch, faiss-cpu, mlflow, matplotlib, joblib).
-
-## Legacy file
-
-`02b_tuned_baseline.py` is an earlier experiment (subject+body feature
-trick on Logistic Regression only) that is **not** part of the current
-run order above — it's superseded by the tuned Linear SVM in
-`02_baseline_model.py`, which now scores higher (F1=0.731 vs 0.730) using
-a more principled three-model validation-based selection process. Kept
-for reference; safe to delete.
+The pipeline is designed to sit behind a FastAPI layer without modification. The expected addition is a `src/routes/` package exposing a single endpoint that instantiates `RAGPipeline` and calls `.run()`, plus a `src/main.py` FastAPI app. No existing controller or service logic needs to change for that step.
