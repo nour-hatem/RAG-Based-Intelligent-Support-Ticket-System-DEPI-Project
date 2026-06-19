@@ -12,3 +12,5 @@ groq==1.4.0
 nltk==3.9.4
 rouge-score==0.1.2
 python-dotenv==1.2.2
+pydantic==2.7.1
+pydantic-settings==2.2.1
