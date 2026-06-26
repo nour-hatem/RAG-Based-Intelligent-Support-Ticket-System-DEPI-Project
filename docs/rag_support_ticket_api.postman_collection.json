@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "RAG Support Ticket API",
+    "_postman_id": "rag-support-ticket-api-v1",
+    "description": "Collection for the RAG-Based Intelligent Support Ticket System API (feature/backend-api).\n\nSet the `api_key` and `base_url` collection variables before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "description": "Base URL of the running API. Change to your deployed URL if needed."
+    },
+    {
+      "key": "api_key",
+      "value": "local-dev-key",
+      "description": "Value of API_KEY from your .env file. Set this variable — do not hardcode per-request."
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Public health check — no authentication required. Returns 200 when the app is running."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\"status\": \"ok\", \"version\": \"0.1.0\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "POST /api/v1/tickets/respond — normal ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-API-Key", "value": "{{api_key}}", "description": "Required. Sourced from the api_key collection variable."}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Cannot access my account\",\n  \"body\": \"I have been unable to log in to my account for the past two days. I tried resetting my password but the reset email never arrived. Please help me regain access as soon as possible.\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tickets/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tickets", "respond"]
+            },
+            "description": "A realistic support ticket. Expects 200 with predicted_queue, generated_answer, needs_human_review, and confidence_score."
+          },
+          "response": [
+            {
+              "name": "200 OK — normal response",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"predicted_queue\": \"Technical Support\",\n  \"generated_answer\": \"We are sorry to hear you are experiencing login issues. Please try clearing your browser cache or using a different browser. If the problem persists, contact us directly and we will reset your account manually.\",\n  \"needs_human_review\": false,\n  \"confidence_score\": 0.78\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/v1/tickets/respond — minimal body (edge case)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-API-Key", "value": "{{api_key}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Help.\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tickets/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tickets", "respond"]
+            },
+            "description": "Minimal valid body (1 character passes min_length=1). Tests the lower validation boundary. Likely to trigger needs_human_review=true due to low retrieval similarity."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/tickets/respond — oversized body (422 expected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-API-Key", "value": "{{api_key}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}{{$randomLoremParagraph}}\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tickets/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tickets", "respond"]
+            },
+            "description": "Body exceeding 5000 characters. Pydantic should return 422 Unprocessable Entity automatically."
+          },
+          "response": [
+            {
+              "name": "422 Unprocessable Entity",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": [\n    {\n      \"type\": \"string_too_long\",\n      \"loc\": [\"body\", \"body\"],\n      \"msg\": \"String should have at most 5000 characters\",\n      \"ctx\": {\"max_length\": 5000}\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/v1/tickets/respond — missing API key (401 expected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"My invoice is incorrect.\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tickets/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tickets", "respond"]
+            },
+            "description": "No X-API-Key header. Expects 401 Unauthorized."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid or missing API key.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/v1/tickets/respond — wrong API key (401 expected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-API-Key", "value": "wrong-key-here"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"My invoice is incorrect.\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tickets/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tickets", "respond"]
+            },
+            "description": "Incorrect X-API-Key value. Expects 401 Unauthorized."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid or missing API key.\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
