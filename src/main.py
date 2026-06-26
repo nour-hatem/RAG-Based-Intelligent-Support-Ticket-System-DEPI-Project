@@ -1,8 +1,10 @@
 import logging
+import secrets
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi.security.api_key import APIKeyHeader
 from fastapi.responses import JSONResponse
 
 from src.config import settings
@@ -106,6 +108,26 @@ async def generic_error_handler(request: Request, exc: Exception):
 
 
 # ---------------------------------------------------------------------------
+# Auth dependency
+# ---------------------------------------------------------------------------
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(api_key: str | None = Security(_api_key_header)) -> None:
+    """Raises 401 if the X-API-Key header is missing or does not match settings.api_key.
+
+    Uses secrets.compare_digest to avoid timing-based discrepancies.
+    """
+    if api_key is None or not secrets.compare_digest(api_key, settings.api_key):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key.",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -124,6 +146,7 @@ async def health():
     response_model=TicketResponse,
     tags=["Tickets"],
     summary="Classify a support ticket and generate a customer-facing response",
+    dependencies=[Depends(verify_api_key)],
 )
 async def respond_to_ticket(request: Request, body: TicketRequest):
     """Accepts a support ticket, runs it through the RAG pipeline, and returns
