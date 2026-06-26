@@ -1,11 +1,13 @@
 import json
 import re
+from typing import Optional
 from src.config import settings
 from src.models.ticket import Ticket
 from src.models.rag_response import RAGResponse
 from src.services.embedding.embedder import Embedder
 from src.services.retrieval.faiss_retriever import FAISSRetriever
 from src.services.llm.groq_provider import GroqProvider
+from src.services.rerank.cross_encoder_reranker import CrossEncoderReranker
 from src.services.rag.prompt_builder import build_prompt
 from src.utils.helpers import clean_text
 
@@ -19,10 +21,17 @@ class LLMParsingError(Exception):
 
 
 class RAGPipeline:
-    def __init__(self, embedder: Embedder, retriever: FAISSRetriever, llm_provider: GroqProvider):
+    def __init__(
+        self,
+        embedder: Embedder,
+        retriever: FAISSRetriever,
+        llm_provider: GroqProvider,
+        reranker: Optional[CrossEncoderReranker] = None,
+    ):
         self.embedder = embedder
         self.retriever = retriever
         self.llm = llm_provider
+        self.reranker = reranker
 
     def run(self, ticket: Ticket) -> RAGResponse:
         query_embedding = self.embedder.embed(clean_text(ticket.body))
@@ -30,6 +39,8 @@ class RAGPipeline:
 
         top_score = retrieved[0].score if retrieved else 0.0
 
+        # Abstention check - uses FAISS cosine score exclusively.
+        # Re-ranking must NOT run before this: CE scores are not [0,1].
         if top_score < settings.confidence_threshold:
             return RAGResponse(
                 predicted_queue=retrieved[0].queue if retrieved else "Unknown",
@@ -39,7 +50,12 @@ class RAGPipeline:
                 confidence_score=top_score,
             )
 
-        prompt = build_prompt(ticket, retrieved)
+        # Optional re-ranking - runs only after abstention check passes.
+        prompt_docs = retrieved
+        if settings.rerank_enabled and self.reranker is not None:
+            prompt_docs = self.reranker.rerank(clean_text(ticket.body), retrieved)
+
+        prompt = build_prompt(ticket, prompt_docs)
         raw_response = self.llm.generate(prompt)
         parsed = self._parse_response(raw_response)
 
