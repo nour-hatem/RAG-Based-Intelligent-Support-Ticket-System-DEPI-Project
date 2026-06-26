@@ -19,10 +19,10 @@ class LLMParsingError(Exception):
 
 
 class RAGPipeline:
-    def __init__(self):
-        self.embedder = Embedder()
-        self.retriever = FAISSRetriever()
-        self.llm = GroqProvider()
+    def __init__(self, embedder: Embedder, retriever: FAISSRetriever, llm_provider: GroqProvider):
+        self.embedder = embedder
+        self.retriever = retriever
+        self.llm = llm_provider
 
     def run(self, ticket: Ticket) -> RAGResponse:
         query_embedding = self.embedder.embed(clean_text(ticket.body))

@@ -1,12 +1,19 @@
 import sys
 sys.path.insert(0, ".")
 
+from src.services.embedding.embedder import Embedder
+from src.services.retrieval.faiss_retriever import FAISSRetriever
+from src.services.llm.groq_provider import GroqProvider
 from src.services.rag.rag_pipeline import RAGPipeline
 from src.evaluation.evaluator import Evaluator
 
 
 def main():
-    pipeline = RAGPipeline()
+    pipeline = RAGPipeline(
+        embedder=Embedder(),
+        retriever=FAISSRetriever(),
+        llm_provider=GroqProvider(),
+    )
     evaluator = Evaluator(pipeline)
     results = evaluator.run()
 

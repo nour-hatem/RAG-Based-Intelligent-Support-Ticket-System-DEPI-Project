@@ -3,11 +3,18 @@ sys.path.insert(0, ".")
 
 import pandas as pd
 from src.models.ticket import Ticket
+from src.services.embedding.embedder import Embedder
+from src.services.retrieval.faiss_retriever import FAISSRetriever
+from src.services.llm.groq_provider import GroqProvider
 from src.services.rag.rag_pipeline import RAGPipeline
 
 
 def main():
-    pipeline = RAGPipeline()
+    pipeline = RAGPipeline(
+        embedder=Embedder(),
+        retriever=FAISSRetriever(),
+        llm_provider=GroqProvider(),
+    )
     test_df = pd.read_csv("data/processed/test.csv")
     samples = test_df.sample(3, random_state=42)
 
