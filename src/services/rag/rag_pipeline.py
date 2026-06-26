@@ -10,6 +10,14 @@ from src.services.rag.prompt_builder import build_prompt
 from src.utils.helpers import clean_text
 
 
+class LLMParsingError(Exception):
+    """Raised when the LLM response cannot be parsed into the expected JSON format."""
+
+    def __init__(self, message: str, raw_response: str | None = None):
+        super().__init__(message)
+        self.raw_response = raw_response
+
+
 class RAGPipeline:
     def __init__(self):
         self.embedder = Embedder()
@@ -32,8 +40,17 @@ class RAGPipeline:
     def _parse_response(self, raw: str) -> dict:
         match = re.search(r"\{.*\}", raw, re.DOTALL)
         if not match:
-            raise ValueError(f"No JSON object found in LLM response: {raw}")
+            raise LLMParsingError("No JSON object found in LLM response", raw_response=raw)
+        
         try:
-            return json.loads(match.group())
+            parsed = json.loads(match.group())
         except json.JSONDecodeError as e:
-            raise ValueError(f"LLM returned invalid JSON: {e}\nRaw response: {raw}")
+            raise LLMParsingError(f"Invalid JSON in LLM response: {e}", raw_response=raw)
+            
+        if not isinstance(parsed, dict):
+            raise LLMParsingError("LLM response parsed to a non-dictionary object", raw_response=raw)
+            
+        if "predicted_queue" not in parsed or "generated_answer" not in parsed:
+            raise LLMParsingError("Missing required keys in LLM response", raw_response=raw)
+            
+        return parsed

@@ -31,7 +31,7 @@ Given a new support ticket and {len(retrieved)} similar resolved tickets as cont
 return a JSON object with exactly two keys:
 - "predicted_queue": one of the following queues:
 {queues_str}
-- "generated_answer": a helpful, concise response to the customer
+- "generated_answer": a helpful, concise response to the customer. Do not reproduce placeholder tokens (e.g. <tel_num>, <order_num>) found in the retrieved tickets; instead, write a natural sentence.
 
 Similar resolved tickets:
 ---
