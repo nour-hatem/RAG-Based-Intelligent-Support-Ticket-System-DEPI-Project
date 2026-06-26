@@ -1,17 +1,20 @@
-# RAG Pipeline
+# RAG Pipeline & Backend API
 
-Branch: `feature/rag-pipeline`
+Branch: `feature/backend-api`
 
 ## Background
 
-This is a multi-part team project. The data pipeline and the classical baselines, embeddings, and FAISS index were already completed before this branch started. What's implemented here is the next phase: a RAG system built on top of that existing work.
+This is a multi-part team project. The data pipeline and classical baselines were completed first. Then the core RAG system (`feature/rag-pipeline`) was built. This branch (`feature/backend-api`) wraps that pipeline in a production-ready FastAPI service with authentication, Docker containerization, abstention logic, and cross-encoder re-ranking.
 
 ## What this does
 
-It retrieves similar resolved tickets from the training corpus and uses an LLM to predict the queue and generate a customer-facing answer for a new ticket:
+It provides a REST API that accepts customer support tickets, retrieves similar resolved tickets, and uses an LLM to predict the queue and generate a customer-facing answer:
 
 ```
-New ticket (subject + body)
+POST /api/v1/tickets/respond
+        |
+        v
+  Ticket validation (max length 5000) & API Key Auth
         |
         v
   clean_text + embed (all-MiniLM-L6-v2)
@@ -20,16 +23,22 @@ New ticket (subject + body)
   FAISS search over train.csv embeddings (top-K)
         |
         v
+  [Abstention Check] -> if confidence < 0.55, return needs_human_review=True
+        |
+        v
+  [Optional Re-ranking] -> Cross-encoder sorts retrieved docs
+        |
+        v
   Prompt built from ticket + retrieved tickets
         |
         v
   Groq LLM (llama-3.1-8b-instant)
         |
         v
-  { predicted_queue, generated_answer }
+  { predicted_queue, generated_answer, needs_human_review, confidence_score }
 ```
 
-The system answers two questions per ticket: which queue should this go to, and what should the agent respond.
+The system is designed to be highly reliable: it catches bad LLM JSON with a custom `LLMParsingError` mapped to a 502 Bad Gateway, abstains from answering if retrieval similarity is too low, and is fully containerized.
 
 ## Critical design decision: index scope
 
@@ -41,53 +50,66 @@ This is intentional. If the index included test data, retrieving a test ticket w
 
 ```
 src/
+├── api/
+│   └── schemas.py              Pydantic external request/response models
 ├── config/
-│   └── settings.py            Pydantic settings, loaded from .env
+│   └── settings.py             Pydantic settings, loaded from .env
+├── evaluation/
+│   ├── evaluator.py            Runs pipeline over test set
+│   └── metrics.py              F1, accuracy, BLEU, ROUGE-L
 ├── models/
 │   ├── ticket.py               Ticket, RetrievedTicket schemas
-│   └── rag_response.py         RAGResponse schema
+│   └── rag_response.py         RAGResponse internal schema
 ├── services/
 │   ├── embedding/
-│   │   └── embedder.py         SentenceTransformer wrapper, loaded once
-│   ├── retrieval/
-│   │   └── faiss_retriever.py  FAISS search + corpus lookup
+│   │   └── embedder.py         SentenceTransformer wrapper
 │   ├── llm/
-│   │   ├── llm_interface.py    Abstract LLM interface
 │   │   └── groq_provider.py    Groq implementation
-│   └── rag/
-│       ├── prompt_builder.py   Builds the LLM prompt from ticket + context
-│       └── rag_pipeline.py     Orchestrator: embed → retrieve → generate
-├── evaluation/
-│   ├── metrics.py               F1, accuracy, BLEU, ROUGE-L
-│   └── evaluator.py             Runs the pipeline over a stratified test sample
-└── utils/
-    └── helpers.py                clean_text(), mirrors the preprocessing pipeline
+│   ├── rag/
+│   │   ├── prompt_builder.py   Builds the LLM prompt
+│   │   └── rag_pipeline.py     Orchestrator: embed → retrieve → generate
+│   ├── rerank/
+│   │   └── cross_encoder_reranker.py Optional re-ranking step
+│   └── retrieval/
+│       └── faiss_retriever.py  FAISS search + corpus lookup
+├── utils/
+│   └── helpers.py              clean_text()
+└── main.py                     FastAPI entrypoint with async lifespan
 
 scripts/
-├── test_rag.py          Smoke test on 3 sample tickets
-├── evaluate_rag.py      Full evaluation run, saves results to reports/
-└── generate_report.py   Builds the RAG vs baseline comparison report
+├── evaluate_rag.py      Full evaluation run
+├── generate_report.py   Builds baseline comparison report
+└── test_rag.py          Smoke test on 3 sample tickets
 
-reports/
-├── rag_evaluation_results.json
-└── rag_vs_baseline.md
+tests/
+└── test_api.py          Integration tests using FastAPI TestClient
+
+reports/                 Test results and M3 completion reports
+docs/                    Postman collection and project milestones
+
+docker-compose.yml       Docker orchestration and volume mounting
+Dockerfile               Multi-stage container definition
+.dockerignore            Excludes raw data and local environments
+pytest.ini               Pytest configuration (skips e2e by default)
+requirements.txt         Python dependencies
+.env.example             Template for environment variables
 ```
 
 Each layer has one job. The LLM and the vector store are both behind interfaces, so swapping Groq for another provider or FAISS for another vector store later only means writing a new provider class, not touching the pipeline logic.
 
-## Why each layer exists
+**FastAPI `main.py`** uses an async `@lifespan` context manager to load the Embedder, FAISS Index, Groq Provider, and Cross-Encoder exactly once at startup. The heavy ML models are stored on `app.state` to serve requests with minimal latency.
 
-**Embedder** turns text into a normalized 384-dim vector using the same model and settings (`normalize_embeddings=True`) that built the FAISS index. The model loads once at startup, not on every call.
+**Embedder** turns text into a normalized 384-dim vector using the same model and settings (`normalize_embeddings=True`) that built the FAISS index.
 
-**FAISSRetriever** searches the index and pulls the matching rows from `train.csv`. Scores are clamped to `[0.0, 1.0]` since cosine similarity should fall in that range but floating point noise can occasionally push values slightly outside it.
+**FAISSRetriever** searches the index and pulls the matching rows from `train.csv`. Scores are clamped to `[0.0, 1.0]`.
 
-**PromptBuilder** assembles the retrieved tickets and the new ticket into a single prompt and instructs the LLM to return strict JSON with exactly two keys: `predicted_queue` and `generated_answer`.
+**Abstention & Reranker** (in `rag_pipeline.py`): The pipeline checks if the top cosine similarity score is below `CONFIDENCE_THRESHOLD`. If so, it short-circuits and flags for human review to save LLM costs and prevent hallucinations. If confident, it optionally runs the `CrossEncoderReranker` to re-order the results before passing them to the prompt.
 
-**GroqProvider** calls the Groq API at `temperature=0.0` for consistent, repeatable output, since this is a classification-adjacent task rather than a creative one.
+**PromptBuilder** assembles the retrieved tickets and the new ticket into a single prompt and instructs the LLM to return strict JSON.
 
-**RAGPipeline** is the only piece that knows about all the other pieces. It calls them in order and parses the LLM's JSON response, extracting the JSON object directly with a regex rather than relying on the model to fence its output a specific way.
+**GroqProvider** calls the Groq API at `temperature=0.0` for consistent, repeatable output.
 
-**Evaluator** draws a stratified sample from `test.csv` (so every queue is represented), runs the full pipeline on each ticket, and computes queue F1/accuracy plus BLEU and ROUGE-L for the generated answers. Failed rows are skipped and excluded from the reported sample size rather than aborting the whole run.
+**Evaluator** runs the pipeline on a stratified sample from `test.csv` and computes queue F1/accuracy plus BLEU and ROUGE-L for the generated answers, gracefully handling abstentions.
 
 ## Setup
 
@@ -98,7 +120,11 @@ pip install -r requirements.txt
 Create a `.env` file:
 
 ```
+# Required
 GROQ_API_KEY=your_key_here
+API_KEY=local-dev-key
+
+# Optional — defaults match settings.py
 MODEL_NAME=llama-3.1-8b-instant
 EMBED_MODEL=all-MiniLM-L6-v2
 TOP_K=5
@@ -106,6 +132,18 @@ EVAL_SAMPLE_SIZE=250
 FAISS_INDEX_PATH=faiss/faiss.index
 TRAIN_CSV_PATH=data/processed/train.csv
 TEST_CSV_PATH=data/processed/test.csv
+
+# API server
+HOST=0.0.0.0
+PORT=8000
+
+# Abstention
+CONFIDENCE_THRESHOLD=0.55
+
+# Cross-encoder re-ranking (disabled by default)
+RERANK_ENABLED=False
+RERANK_MODEL_NAME=cross-encoder/ms-marco-MiniLM-L-6-v2
+RERANK_TOP_K=5
 ```
 
 Required from the earlier pipeline stage, generated locally and not committed to git:
@@ -117,11 +155,43 @@ data/processed/train.csv
 data/processed/test.csv
 ```
 
-## Running it
+## Running it (Docker - Recommended)
+
+The application is fully dockerized. It mounts the `data/` and `faiss/` directories as read-only volumes and caches HuggingFace models in a Docker volume so they don't re-download.
 
 ```bash
+docker compose up --build -d
+```
+
+The API will be available at `http://localhost:8000`. 
+
+Check the health endpoint (no auth required):
+```bash
+curl http://localhost:8000/health
+```
+
+Test the main inference endpoint (auth required):
+```bash
+curl -X POST http://localhost:8000/api/v1/tickets/respond \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: local-dev-key" \
+  -d '{"subject": "Cannot login", "body": "I forgot my password and the reset link is not working."}'
+```
+
+You can also import `docs/rag_support_ticket_api.postman_collection.json` into Postman to test all endpoints. Be sure to set the `api_key` collection variable.
+
+## Running it (Local / Dev)
+
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+Run tests and evaluation:
+```bash
+pytest tests/test_api.py -v       # API integration tests (mocks LLM)
+RUN_E2E=true pytest -m e2e -v     # Run real LLM end-to-end test
 python scripts/test_rag.py        # sanity check on 3 tickets
-python scripts/evaluate_rag.py    # full evaluation, saves reports/rag_evaluation_results.json
+python scripts/evaluate_rag.py    # full evaluation, saves reports/
 python scripts/generate_report.py # builds reports/rag_vs_baseline.md
 ```
 
@@ -147,4 +217,4 @@ Queue classification drops by about 1.2 percent compared to the dedicated SVM ba
 
 ## Next steps
 
-The pipeline is designed to sit behind a FastAPI layer without modification. The expected addition is a `src/routes/` package exposing a single endpoint that instantiates `RAGPipeline` and calls `.run()`, plus a `src/main.py` FastAPI app. No existing controller or service logic needs to change for that step.
+The backend API is complete (Milestone 3). All endpoints, error handling, validation, and containerization requirements are met. The next step is **Milestone 4 (Frontend)** or **Milestone 5 (MLOps & Azure Deployment)**, where this Dockerized container will be pushed to an Azure Container Registry and deployed to Azure Web Apps, CI/CD will be configured via GitHub Actions, and an optional frontend UI will be built to interact with this API.
