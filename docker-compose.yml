@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rag-support-ticket-api:latest
+    container_name: rag_api
+
+    # Load secrets and settings from the local .env file.
+    # The file is never copied into the image — only read by the container at runtime.
+    env_file:
+      - .env
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      # Gitignored runtime artifacts — mounted read-only.
+      # The image does not contain these; they must exist on the host.
+      - ./data/processed:/app/data/processed:ro
+      - ./faiss:/app/faiss:ro
+
+      # HuggingFace model cache — persist across container rebuilds so models
+      # (all-MiniLM-L6-v2, cross-encoder) are not re-downloaded every time.
+      - hf_cache:/root/.cache/huggingface
+
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s   # allow time for model loading on first start
+
+    restart: unless-stopped
+
+volumes:
+  hf_cache:
+    driver: local
