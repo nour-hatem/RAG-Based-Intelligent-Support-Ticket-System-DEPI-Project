@@ -27,6 +27,18 @@ class RAGPipeline:
     def run(self, ticket: Ticket) -> RAGResponse:
         query_embedding = self.embedder.embed(clean_text(ticket.body))
         retrieved = self.retriever.retrieve(query_embedding, top_k=settings.top_k)
+
+        top_score = retrieved[0].score if retrieved else 0.0
+
+        if top_score < settings.confidence_threshold:
+            return RAGResponse(
+                predicted_queue=retrieved[0].queue if retrieved else "Unknown",
+                generated_answer=None,
+                retrieved_documents=retrieved,
+                needs_human_review=True,
+                confidence_score=top_score,
+            )
+
         prompt = build_prompt(ticket, retrieved)
         raw_response = self.llm.generate(prompt)
         parsed = self._parse_response(raw_response)
@@ -35,6 +47,8 @@ class RAGPipeline:
             predicted_queue=parsed["predicted_queue"],
             generated_answer=parsed["generated_answer"],
             retrieved_documents=retrieved,
+            needs_human_review=False,
+            confidence_score=top_score,
         )
 
     def _parse_response(self, raw: str) -> dict:
