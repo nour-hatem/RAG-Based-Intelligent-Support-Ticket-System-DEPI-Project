@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.api.schemas import TicketRequest, TicketResponse
@@ -71,6 +72,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# The frontend (served from a different origin than the API, e.g. a local
+# static file server or the deployed Azure Static Web App) needs the browser
+# to be allowed to call this API cross-origin. Without this, /health and
+# /api/v1/tickets/respond calls from the browser are blocked by CORS even
+# though the API itself works fine (e.g. via curl or pytest).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=False,
+    allow_methods=["*"], 
+    allow_headers=["*"], 
+)
+
 
 # ---------------------------------------------------------------------------
 # Exception handlers
@@ -114,11 +128,14 @@ async def generic_error_handler(request: Request, exc: Exception):
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-async def verify_api_key(api_key: str | None = Security(_api_key_header)) -> None:
+async def verify_api_key(request: Request, api_key: str | None = Security(_api_key_header)) -> None:
     """Raises 401 if the X-API-Key header is missing or does not match settings.api_key.
 
     Uses secrets.compare_digest to avoid timing-based discrepancies.
     """
+    if request.method == "OPTIONS":
+            return
+
     if api_key is None or not secrets.compare_digest(api_key, settings.api_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
