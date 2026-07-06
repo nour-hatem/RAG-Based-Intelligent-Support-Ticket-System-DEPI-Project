@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # CORS - origins allowed to call this API from a browser (the frontend).
+    # JSON array in .env, e.g. CORS_ALLOW_ORIGINS=["http://localhost:5500","https://your-azure-url"]
+    cors_allow_origins: list[str] = ["*"]
     # Abstention
     confidence_threshold: float = 0.55
 
