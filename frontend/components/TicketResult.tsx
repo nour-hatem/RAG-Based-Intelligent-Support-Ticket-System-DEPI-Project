@@ -1,105 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { Card, Chip, Alert, Button, Accordion } from "@heroui/react";
-import { CheckCircle2, AlertTriangle, Copy, Layers } from "lucide-react";
+import { Card, Accordion } from "@heroui/react";
 import type { TicketResponse } from "@/lib/types";
 
 interface TicketResultProps {
   result: TicketResponse;
 }
 
-function queueColor(queue: string): "success" | "danger" | "accent" | "default" {
-  const q = queue.toLowerCase();
-  if (q.includes("billing") || q.includes("payment")) return "success";
-  if (q.includes("tech") || q.includes("it")) return "danger";
-  return "accent";
-}
-
 export function TicketResult({ result }: TicketResultProps) {
-  const [copied, setCopied] = useState(false);
   const confidencePct = Math.round((result.confidence_score ?? 0) * 100);
 
-  function handleCopy() {
-    if (!result.generated_answer) return;
-    navigator.clipboard.writeText(result.generated_answer);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      {result.needs_human_review && (
-        <Alert status="danger">
-          <Alert.Indicator>
-            <AlertTriangle size={18} />
-          </Alert.Indicator>
-          <Alert.Content>
-            <Alert.Title>Human attention required</Alert.Title>
-            <Alert.Description>
-              Confidence score is below threshold. Flagged for manual review.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card variant="default">
-          <Card.Content className="flex flex-col gap-3 p-5">
-            <p className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-muted">
-              <Layers size={14} /> AI classification
-            </p>
-            <div>
-              <span className="mb-1 block text-xs text-muted">Predicted queue</span>
-              <Chip color={queueColor(result.predicted_queue)} variant="primary">
-                <Chip.Label>{result.predicted_queue}</Chip.Label>
-              </Chip>
-            </div>
-          </Card.Content>
-        </Card>
-
-        <Card variant="default">
-          <Card.Content className="flex flex-col gap-2 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted">Confidence</p>
-            <span className="text-3xl font-black">{confidencePct}%</span>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-default-200">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  confidencePct > 60 ? "bg-success" : "bg-warning"
-                }`}
-                style={{ width: `${confidencePct}%` }}
-              />
-            </div>
-          </Card.Content>
-        </Card>
-      </div>
-
-      <Card variant="default">
-        <Card.Header className="flex flex-row items-center justify-between">
-          <Card.Title className="flex items-center gap-2 text-sm">
-            <CheckCircle2 size={18} className="text-success" /> Generated draft reply
-          </Card.Title>
-          {result.generated_answer && (
-            <Button
-              size="sm"
-              variant={copied ? "primary" : "outline"}
-              onPress={handleCopy}
-            >
-              <Copy size={14} /> {copied ? "Copied!" : "Copy"}
-            </Button>
-          )}
+    <div className="flex justify-start">
+      <Card variant="default" className="max-w-[80%]">
+        <Card.Header>
+          <Card.Title className="text-sm text-muted">Triage AI</Card.Title>
+          {/* This is the "Source/Reference" the compound header shows —
+              the predicted queue is the only retrieval-derived signal
+              this backend exposes to the client. */}
+          <Card.Description>
+            Routed to: <span className="font-medium text-foreground">{result.predicted_queue}</span>
+          </Card.Description>
         </Card.Header>
+
         <Card.Content>
           {result.generated_answer ? (
-            <div className="min-h-[100px] whitespace-pre-wrap rounded-xl border border-default-200 bg-surface-secondary p-4 text-sm leading-relaxed">
-              {result.generated_answer}
-            </div>
+            <p className="whitespace-pre-wrap text-sm">{result.generated_answer}</p>
           ) : (
             <p className="text-sm italic text-muted">
               This ticket was routed to a human agent instead of an automated reply.
             </p>
           )}
         </Card.Content>
+
         <Card.Footer className="flex-col items-stretch gap-0 p-0">
           <Accordion className="w-full">
             <Accordion.Item id="details">

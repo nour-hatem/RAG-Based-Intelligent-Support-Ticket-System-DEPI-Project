@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chip } from "@heroui/react";
-import { Sparkles } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatInput } from "@/components/ChatInput";
 import { UserMessage } from "@/components/UserMessage";
@@ -26,7 +24,6 @@ export default function Page() {
   const [activeId, setActiveId] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -93,44 +90,28 @@ export default function Page() {
         activeId={activeId}
         onSelect={setActiveId}
         onNew={handleNew}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
 
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b border-default-200 px-6 py-4">
+      <main className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-default-200 px-6 py-3">
           <div>
-            <h1 className="text-2xl font-black tracking-tight">Triage</h1>
-            <p className="text-xs text-muted">Automated AI router &amp; RAG assistant</p>
+            <h1 className="text-sm font-semibold">Support Ticket Triage</h1>
+            <p className="text-xs text-muted">
+              {backendOnline === null
+                ? "Checking backend…"
+                : backendOnline
+                  ? "Backend online"
+                  : "Backend unavailable"}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Chip color={backendOnline ? "success" : "danger"} variant="soft" size="sm">
-              <Chip.Label>
-                {backendOnline === null
-                  ? "Checking backend…"
-                  : backendOnline
-                    ? "Backend online"
-                    : "Backend unavailable"}
-              </Chip.Label>
-            </Chip>
-          </div>
+          <ThemeToggle />
         </header>
 
         <div ref={scrollRef} className="thin-scroll flex-1 space-y-4 overflow-y-auto px-6 py-6">
           {active?.messages.length === 0 && (
-            <div className="mx-auto mt-16 flex max-w-sm flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 rotate-3 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500 to-violet-500 text-white shadow-lg shadow-blue-500/20">
-                <Sparkles size={28} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black tracking-tight">Ready for triage</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Type a customer&apos;s message below. Triage will predict the right queue,
-                  calculate confidence, and draft a reply — or flag it for human review if it
-                  isn&apos;t confident enough.
-                </p>
-              </div>
+            <div className="mx-auto mt-16 max-w-md text-center text-sm text-muted">
+              Type a customer's message below. Triage will predict the right queue and draft a
+              reply, or flag it for human review if it isn't confident enough.
             </div>
           )}
 

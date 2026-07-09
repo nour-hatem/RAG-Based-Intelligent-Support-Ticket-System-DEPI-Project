@@ -5,4 +5,9 @@ out/
 npm-debug.log*
 .DS_Store
 *.tsbuildinfo
-.env.local
+node_modules
+.next
+out
+.git
+.env
+.DS_Store

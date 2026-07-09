@@ -20,19 +20,15 @@ fields above; that's the full extent of what the backend hands back per ticket.
 
 ## Configure the backend connection
 
-Copy the example env file and fill in your real values (never commit `.env.local`):
+Edit the two constants at the top of `lib/api.ts`:
 
-```bash
-cp .env.example .env.local
+```ts
+export const API_BASE_URL = "http://127.0.0.1:8000";
+export const API_KEY = "waad-rag-api-2026-secret";
 ```
 
-```
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
-NEXT_PUBLIC_API_KEY=your-api-key-here
-```
-
-Set `NEXT_PUBLIC_API_KEY` to match whatever `API_KEY` is set to in the backend's
-`.env`. Set `NEXT_PUBLIC_API_BASE_URL` to your Azure URL once deployed.
+Change `API_KEY` to match whatever `API_KEY` is set to in the backend's `.env`.
+Change `API_BASE_URL` to your Azure URL once deployed.
 
 **CORS reminder:** your FastAPI backend must have `CORSMiddleware` enabled with
 this frontend's dev origin (`http://localhost:3000` or `3100`, whichever port
@@ -59,10 +55,10 @@ npm start
 
 | UI piece | HeroUI v3 components used |
 |---|---|
-| Sidebar / ticket history + collapse toggle | Plain layout + `Button` (New ticket) |
-| Header online/offline + theme switch | `useTheme` hook, `Button`, `Chip` |
+| Sidebar / ticket history | Plain layout + `Button` (New ticket) |
+| Header online/offline + theme switch | `useTheme` hook, `Button` |
 | User message bubble | `Card` (`Card.Header`, `Card.Content`) |
-| AI response bubble | `Card` (`Card.Header/Content/Footer`), `Chip` (color-coded queue), custom confidence bar, `Accordion` for prediction details, `Alert` when flagged for human review, `Button` (copy reply) |
+| AI response bubble | `Card` (`Card.Header/Content/Footer`) + `Accordion` (`Accordion.Item/Heading/Trigger/Indicator/Panel/Body`) for prediction details |
 | Loading state | `Skeleton` |
 | Error state | `Alert` (`Alert.Indicator/Content/Title/Description`) |
 | Ticket input form | `TextField`, `Input`, `TextArea`, `Label`, `Description`, `Button` |
