@@ -1,0 +1,39 @@
+# Version control
+.git
+.gitignore
+
+# Runtime data artifacts — mounted as volumes, never baked into the image
+data/
+faiss/
+
+# Secrets — loaded via env_file at runtime, never copied into the image
+.env
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+py/
+
+# Notebooks and reports (not needed at runtime)
+*.ipynb
+reports/
+docs/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
