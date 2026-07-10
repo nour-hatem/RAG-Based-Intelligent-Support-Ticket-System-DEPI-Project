@@ -25,4 +25,3 @@ faiss-cpu==1.8.0
 # ── Development / notebook (optional — not needed to run the .py scripts) ───
 jupyter==1.0.0
 ipykernel==6.29.4
-faiss-cpu==1.8.0
