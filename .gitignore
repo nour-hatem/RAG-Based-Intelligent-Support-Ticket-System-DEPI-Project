@@ -220,3 +220,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Do not ignore the Next.js lib directory (was caught by Python lib/ rule above)
+!frontend/lib/
+!frontend/lib/**
