@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Chip } from "@heroui/react";
+import { Menu, Sparkles } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatInput } from "@/components/ChatInput";
 import { UserMessage } from "@/components/UserMessage";
@@ -24,7 +26,14 @@ export default function Page() {
   const [activeId, setActiveId] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
+  // On desktop, collapsed = false by default; on mobile, collapsed = true (drawer closed)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Initialise collapsed state based on viewport width
+  useEffect(() => {
+    if (window.innerWidth < 768) setSidebarCollapsed(true);
+  }, []);
 
   useEffect(() => {
     const first = newConversation();
@@ -84,34 +93,73 @@ export default function Page() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+    /* Outer shell: sidebar + main side-by-side on md+; stacked (sidebar as overlay) on mobile */
+    <div className="relative flex h-screen w-full overflow-hidden bg-background text-foreground">
       <Sidebar
         conversations={conversations}
         activeId={activeId}
         onSelect={setActiveId}
         onNew={handleNew}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
 
-      <main className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-default-200 px-6 py-3">
-          <div>
-            <h1 className="text-sm font-semibold">Support Ticket Triage</h1>
-            <p className="text-xs text-muted">
-              {backendOnline === null
-                ? "Checking backend…"
-                : backendOnline
-                  ? "Backend online"
-                  : "Backend unavailable"}
-            </p>
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex items-center justify-between gap-2 border-b border-default-200 px-3 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-3">
+            {/* Hamburger — shown on mobile when sidebar is closed */}
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-foreground md:hidden ${
+                !sidebarCollapsed ? "invisible" : ""
+              }`}
+              aria-label="Open sidebar"
+            >
+              <Menu size={20} />
+            </button>
+
+            <div>
+              <h1 className="text-lg font-black tracking-tight sm:text-2xl">Triage</h1>
+              <p className="hidden text-xs text-muted sm:block">Automated AI router &amp; RAG assistant</p>
+            </div>
           </div>
-          <ThemeToggle />
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <Chip
+              color={backendOnline ? "success" : "danger"}
+              variant="soft"
+              size="sm"
+            >
+              <Chip.Label>
+                {backendOnline === null
+                  ? "Checking…"
+                  : backendOnline
+                    ? "Online"
+                    : "Offline"}
+              </Chip.Label>
+            </Chip>
+          </div>
         </header>
 
-        <div ref={scrollRef} className="thin-scroll flex-1 space-y-4 overflow-y-auto px-6 py-6">
+        <div
+          ref={scrollRef}
+          className="thin-scroll flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6"
+        >
           {active?.messages.length === 0 && (
-            <div className="mx-auto mt-16 max-w-md text-center text-sm text-muted">
-              Type a customer's message below. Triage will predict the right queue and draft a
-              reply, or flag it for human review if it isn't confident enough.
+            <div className="mx-auto mt-8 flex max-w-sm flex-col items-center gap-4 text-center sm:mt-16">
+              <div className="flex h-14 w-14 rotate-3 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500 to-violet-500 text-white shadow-lg shadow-blue-500/20 sm:h-16 sm:w-16">
+                <Sparkles size={24} className="sm:hidden" />
+                <Sparkles size={28} className="hidden sm:block" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black tracking-tight sm:text-xl">Ready for triage</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  Type a customer&apos;s message below. Triage will predict the right queue,
+                  calculate confidence, and draft a reply — or flag it for human review if it
+                  isn&apos;t confident enough.
+                </p>
+              </div>
             </div>
           )}
 
