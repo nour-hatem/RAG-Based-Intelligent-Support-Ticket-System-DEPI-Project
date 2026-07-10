@@ -11,8 +11,8 @@ row alignment between CSVs and ``.npy`` files is always guaranteed.
 
 Usage
 -----
-    python src/04_split_data.py
-    python src/04_split_data.py --input-csv data/processed/cleaned_corpus.csv \\
+    python src/data_pipeline/04_split_data.py
+    python src/data_pipeline/04_split_data.py --input-csv data/processed/cleaned_corpus.csv \\
                                 --input-emb data/processed/body_embeddings.npy \\
                                 --output-dir data/processed \\
                                 --val-size 0.15 --test-size 0.15 --seed 42
@@ -30,7 +30,7 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
 import pandas as pd

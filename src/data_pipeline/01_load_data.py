@@ -8,8 +8,8 @@ overwrites the existing raw.csv, so it is safe to use as a cache-buster.
 
 Usage
 -----
-    python src/01_load_data.py
-    python src/01_load_data.py --dataset Tobi-Bueck/customer-support-tickets \\
+    python src/data_pipeline/01_load_data.py
+    python src/data_pipeline/01_load_data.py --dataset Tobi-Bueck/customer-support-tickets \\
                                --output-dir data/processed
 
 Outputs
@@ -25,9 +25,9 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Allow running as  `python src/01_load_data.py`  from the repo root
+# Allow running as  `python src/data_pipeline/01_load_data.py`  from the repo root
 # ---------------------------------------------------------------------------
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.utils.io_utils import save_dataframe, setup_output_dir
 

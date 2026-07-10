@@ -12,8 +12,8 @@ milestones.
 
 Usage
 -----
-    python src/03_embed_data.py
-    python src/03_embed_data.py --input data/processed/cleaned_corpus.csv \\
+    python src/data_pipeline/03_embed_data.py
+    python src/data_pipeline/03_embed_data.py --input data/processed/cleaned_corpus.csv \\
                                 --output-dir data/processed \\
                                 --model all-MiniLM-L6-v2 \\
                                 --batch-size 64
@@ -30,7 +30,7 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
 import pandas as pd

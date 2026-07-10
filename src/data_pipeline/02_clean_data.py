@@ -17,8 +17,8 @@ Steps
 
 Usage
 -----
-    python src/02_clean_data.py
-    python src/02_clean_data.py --input data/processed/raw.csv \\
+    python src/data_pipeline/02_clean_data.py
+    python src/data_pipeline/02_clean_data.py --input data/processed/raw.csv \\
                                 --output-dir data/processed \\
                                 --min-len 30 --max-len 5000
 
@@ -34,7 +34,7 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import pandas as pd
 
