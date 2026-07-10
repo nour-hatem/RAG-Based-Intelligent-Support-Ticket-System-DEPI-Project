@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chip } from "@heroui/react";
+import { Button, Chip } from "@heroui/react";
 import { Menu, Sparkles } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatInput } from "@/components/ChatInput";
@@ -94,7 +94,7 @@ export default function Page() {
 
   return (
     /* Outer shell: sidebar + main side-by-side on md+; stacked (sidebar as overlay) on mobile */
-    <div className="relative flex h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="relative flex h-screen w-full overflow-hidden bg-white text-foreground dark:bg-gray-950">
       <Sidebar
         conversations={conversations}
         activeId={activeId}
@@ -105,56 +105,74 @@ export default function Page() {
       />
 
       <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between gap-2 border-b border-default-200 px-3 py-3 sm:px-6 sm:py-4">
+        {/* ── Header ────────────────────────────────────────────── */}
+        <header className="flex items-center justify-between gap-2 border-b border-blue-100 bg-white/90 px-3 py-3 backdrop-blur-sm dark:border-blue-900/30 dark:bg-gray-950/90 sm:px-6 sm:py-4">
           <div className="flex items-center gap-3">
-            {/* Hamburger — shown on mobile when sidebar is closed */}
-            <button
-              onClick={() => setSidebarCollapsed(false)}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-foreground md:hidden ${
-                !sidebarCollapsed ? "invisible" : ""
-              }`}
+            {/* Hamburger — shown on mobile when sidebar is closed; upgraded to HeroUI Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              onPress={() => setSidebarCollapsed(false)}
               aria-label="Open sidebar"
+              className={`text-gray-400 hover:text-blue-600 md:hidden ${!sidebarCollapsed ? "invisible" : ""}`}
             >
               <Menu size={20} />
-            </button>
+            </Button>
 
             <div>
-              <h1 className="text-lg font-black tracking-tight sm:text-2xl">Triage</h1>
-              <p className="hidden text-xs text-muted sm:block">Automated AI router &amp; RAG assistant</p>
+              <h1 className="text-lg font-black tracking-tight text-blue-700 dark:text-blue-300 sm:text-2xl">
+                Triage
+              </h1>
+              <p className="hidden text-xs text-gray-400 sm:block">
+                Automated AI router &amp; RAG assistant
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            <Chip
-              color={backendOnline ? "success" : "danger"}
-              variant="soft"
-              size="sm"
-            >
-              <Chip.Label>
+
+            {/* Status chip — blue-only scheme (no green/red) */}
+            <div className="flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/60 px-2.5 py-1 text-xs dark:border-blue-900/30 dark:bg-blue-950/30">
+              <span
+                className={`status-dot ${
+                  backendOnline === null
+                    ? "checking"
+                    : backendOnline
+                      ? "online"
+                      : "offline"
+                }`}
+              />
+              <span className="font-medium text-blue-700 dark:text-blue-300">
                 {backendOnline === null
                   ? "Checking…"
                   : backendOnline
                     ? "Online"
                     : "Offline"}
-              </Chip.Label>
-            </Chip>
+              </span>
+            </div>
           </div>
         </header>
 
+        {/* ── Message list ──────────────────────────────────────── */}
         <div
           ref={scrollRef}
           className="thin-scroll flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6"
         >
+          {/* Empty state */}
           {active?.messages.length === 0 && (
-            <div className="mx-auto mt-8 flex max-w-sm flex-col items-center gap-4 text-center sm:mt-16">
-              <div className="flex h-14 w-14 rotate-3 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500 to-violet-500 text-white shadow-lg shadow-blue-500/20 sm:h-16 sm:w-16">
+            <div className="mx-auto mt-8 flex max-w-sm flex-col items-center gap-5 text-center sm:mt-16">
+              {/* Blue-only gradient icon — violet removed */}
+              <div className="flex h-14 w-14 rotate-3 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-400 text-white shadow-lg shadow-blue-500/25 sm:h-16 sm:w-16">
                 <Sparkles size={24} className="sm:hidden" />
                 <Sparkles size={28} className="hidden sm:block" />
               </div>
               <div>
-                <h3 className="text-lg font-black tracking-tight sm:text-xl">Ready for triage</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
+                <h3 className="text-lg font-black tracking-tight text-blue-700 dark:text-blue-300 sm:text-xl">
+                  Ready for triage
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-400">
                   Type a customer&apos;s message below. Triage will predict the right queue,
                   calculate confidence, and draft a reply — or flag it for human review if it
                   isn&apos;t confident enough.
@@ -163,10 +181,14 @@ export default function Page() {
             </div>
           )}
 
+          {/* Message rendering — all logic untouched */}
           {active?.messages.map((m) => {
-            if (m.role === "user") return <UserMessage key={m.id} text={m.text ?? ""} />;
-            if (m.role === "assistant" && m.result) return <TicketResult key={m.id} result={m.result} />;
-            if (m.role === "error") return <ErrorMessage key={m.id} message={m.error ?? "Unknown error"} />;
+            if (m.role === "user")
+              return <UserMessage key={m.id} text={m.text ?? ""} createdAt={m.createdAt} />;
+            if (m.role === "assistant" && m.result)
+              return <TicketResult key={m.id} result={m.result} createdAt={m.createdAt} />;
+            if (m.role === "error")
+              return <ErrorMessage key={m.id} message={m.error ?? "Unknown error"} />;
             return null;
           })}
 

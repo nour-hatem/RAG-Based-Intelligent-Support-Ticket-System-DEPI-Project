@@ -1,18 +1,23 @@
 "use client";
 
-import { Button, useTheme } from "@heroui/react";
+import { Button } from "@heroui/react";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "@heroui/react";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme("light");
+  const isDark = theme === "dark";
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onPress={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label="Toggle dark mode"
+      isIconOnly
+      onPress={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="text-blue-500 hover:text-blue-600"
     >
-      {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
+      {isDark ? <Moon size={17} /> : <Sun size={17} />}
     </Button>
   );
 }

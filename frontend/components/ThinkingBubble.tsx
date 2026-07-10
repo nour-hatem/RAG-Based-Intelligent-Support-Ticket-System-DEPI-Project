@@ -1,21 +1,29 @@
 "use client";
 
-import { Card, Skeleton } from "@heroui/react";
+import { Avatar, Spinner } from "@heroui/react";
 
 export function ThinkingBubble() {
   return (
-    <div className="flex justify-start">
-      <Card variant="default" className="w-full max-w-[85%] sm:w-[80%] sm:max-w-md">
-        <Card.Header>
-          <Card.Title className="text-sm text-muted">Triage AI</Card.Title>
-          <Card.Description>Thinking…</Card.Description>
-        </Card.Header>
-        <Card.Content className="flex flex-col gap-2">
-          <Skeleton className="h-3 w-3/4 rounded-md" />
-          <Skeleton className="h-3 w-full rounded-md" />
-          <Skeleton className="h-3 w-5/6 rounded-md" />
-        </Card.Content>
-      </Card>
+    <div className="message-enter flex justify-start items-end gap-2.5">
+      {/* Bot avatar */}
+      <Avatar size="sm" variant="soft" color="accent" className="shrink-0 mb-1 !bg-blue-100 dark:!bg-blue-900/40">
+        <Avatar.Fallback className="text-blue-600 font-bold text-xs">AI</Avatar.Fallback>
+      </Avatar>
+
+      {/* Bubble */}
+      <div className="flex flex-col gap-1 max-w-[75%] sm:max-w-md">
+        <span className="text-xs font-semibold text-blue-500 px-1">Triage AI</span>
+        <div className="flex items-center gap-3 rounded-2xl rounded-tl-sm border border-blue-100 bg-blue-50/60 px-4 py-3 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
+          <Spinner size="sm" color="current" />
+          <span className="text-sm text-gray-500 dark:text-gray-400">Analyzing your ticket…</span>
+          {/* Animated dots */}
+          <span className="flex items-center gap-1 ml-auto">
+            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-blue-400" />
+            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-blue-400" />
+            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-blue-400" />
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
