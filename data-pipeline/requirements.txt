@@ -1,0 +1,28 @@
+# Python 3.10+
+# Install: pip install -r requirements.txt
+# Then:    python -m spacy download en_core_web_sm
+#
+# ── Core pipeline dependencies ──────────────────────────────────────────────
+datasets==2.19.0
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.4.2
+scipy==1.13.0
+spacy==3.7.4
+transformers==4.40.0
+sentence-transformers==2.7.0
+torch==2.3.0
+langdetect==1.0.9
+tqdm==4.66.4
+
+# ── Visualisation (required by 05_eda.py) ───────────────────────────────────
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# ── Retrieval (used in rag-pipeline / backend-api branches) ─────────────────
+faiss-cpu==1.8.0
+
+# ── Development / notebook (optional — not needed to run the .py scripts) ───
+jupyter==1.0.0
+ipykernel==6.29.4
+faiss-cpu==1.8.0

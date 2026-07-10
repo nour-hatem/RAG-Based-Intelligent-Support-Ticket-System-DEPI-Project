@@ -1,4 +1,8 @@
 milestones.md
+docs/project milestones.md
+*.npy
+# Pipeline run logs (generated at runtime)
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
