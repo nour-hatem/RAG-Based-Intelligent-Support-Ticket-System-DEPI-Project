@@ -6,8 +6,15 @@ from src.models.ticket import Ticket
 from src.services.rag.rag_pipeline import RAGPipeline
 
 
+from src.services.embedding.embedder import Embedder
+from src.services.retrieval.faiss_retriever import FAISSRetriever
+from src.services.llm.groq_provider import GroqProvider
+
 def main():
-    pipeline = RAGPipeline()
+    embedder = Embedder()
+    retriever = FAISSRetriever()
+    llm = GroqProvider()
+    pipeline = RAGPipeline(embedder=embedder, retriever=retriever, llm_provider=llm)
     test_df = pd.read_csv("data/processed/test.csv")
     samples = test_df.sample(3, random_state=42)
 

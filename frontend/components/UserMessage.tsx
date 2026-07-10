@@ -18,11 +18,11 @@ export function UserMessage({ subject, text, createdAt }: UserMessageProps) {
       {/* Bubble */}
       <div className="flex flex-col items-end gap-1 max-w-[82%] sm:max-w-[70%]">
         {subject && (
-          <span className="text-xs text-blue-500 font-medium px-1">
+          <span className="text-xs text-gray-500 font-medium px-1">
             {subject}
           </span>
         )}
-        <div className="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm shadow-blue-600/20">
+        <div className="bg-gray-100 text-gray-900 dark:bg-[#1e1f20] dark:text-gray-100 rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm border border-transparent dark:border-white/5">
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{text}</p>
         </div>
         {time && (
@@ -31,7 +31,7 @@ export function UserMessage({ subject, text, createdAt }: UserMessageProps) {
       </div>
 
       {/* Avatar */}
-      <Avatar size="sm" variant="soft" color="default" className="shrink-0 mb-5">
+      <Avatar size="sm" className="shrink-0 mb-5 bg-gray-200 text-gray-600 dark:bg-[#2a2b2c] dark:text-gray-400">
         <Avatar.Fallback>U</Avatar.Fallback>
       </Avatar>
     </div>

@@ -1,0 +1,14 @@
+.venv
+venv
+__pycache__
+.git
+data/
+faiss/
+embeddings/
+plots/
+reports/
+frontend/
+m1_data_pipeline.ipynb
+*.pkl
+*.npy
+*.csv

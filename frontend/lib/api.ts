@@ -87,7 +87,7 @@ async function parseErrorResponse(res: Response): Promise<ApiError> {
  */
 export async function checkHealth(): Promise<boolean> {
   try {
-    const res = await fetch(`${BASE}/health`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/api/health`, { cache: "no-store" });
     return res.ok;
   } catch {
     return false;

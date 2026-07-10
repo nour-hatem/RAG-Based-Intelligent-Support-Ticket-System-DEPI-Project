@@ -94,7 +94,7 @@ export default function Page() {
 
   return (
     /* Outer shell: sidebar + main side-by-side on md+; stacked (sidebar as overlay) on mobile */
-    <div className="relative flex h-screen w-full overflow-hidden bg-white text-foreground dark:bg-gray-950">
+    <div className="relative flex h-screen w-full overflow-hidden bg-white text-foreground dark:bg-[#131314]">
       <Sidebar
         conversations={conversations}
         activeId={activeId}
@@ -106,7 +106,7 @@ export default function Page() {
 
       <main className="flex flex-1 flex-col overflow-hidden">
         {/* ── Header ────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between gap-2 border-b border-blue-100 bg-white/90 px-3 py-3 backdrop-blur-sm dark:border-blue-900/30 dark:bg-gray-950/90 sm:px-6 sm:py-4">
+        <header className="flex items-center justify-between gap-2 border-b border-gray-100 bg-white/90 px-3 py-3 backdrop-blur-sm dark:border-gray-800/50 dark:bg-[#131314]/90 sm:px-6 sm:py-4">
           <div className="flex items-center gap-3">
             {/* Hamburger — shown on mobile when sidebar is closed; upgraded to HeroUI Button */}
             <Button
@@ -133,8 +133,8 @@ export default function Page() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
 
-            {/* Status chip — blue-only scheme (no green/red) */}
-            <div className="flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/60 px-2.5 py-1 text-xs dark:border-blue-900/30 dark:bg-blue-950/30">
+            {/* Status chip — Gemini neutral style */}
+            <div className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50/60 px-2.5 py-1 text-xs dark:border-gray-800/40 dark:bg-[#1e1f20]/60">
               <span
                 className={`status-dot ${
                   backendOnline === null
@@ -144,7 +144,7 @@ export default function Page() {
                       : "offline"
                 }`}
               />
-              <span className="font-medium text-blue-700 dark:text-blue-300">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
                 {backendOnline === null
                   ? "Checking…"
                   : backendOnline
@@ -163,16 +163,16 @@ export default function Page() {
           {/* Empty state */}
           {active?.messages.length === 0 && (
             <div className="mx-auto mt-8 flex max-w-sm flex-col items-center gap-5 text-center sm:mt-16">
-              {/* Blue-only gradient icon — violet removed */}
-              <div className="flex h-14 w-14 rotate-3 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-400 text-white shadow-lg shadow-blue-500/25 sm:h-16 sm:w-16">
+              {/* Gemini-like minimal gradient icon */}
+              <div className="flex h-14 w-14 rotate-3 items-center justify-center rounded-2xl bg-gradient-to-tr from-gray-800 to-gray-600 text-white shadow-lg shadow-gray-900/25 sm:h-16 sm:w-16">
                 <Sparkles size={24} className="sm:hidden" />
                 <Sparkles size={28} className="hidden sm:block" />
               </div>
               <div>
-                <h3 className="text-lg font-black tracking-tight text-blue-700 dark:text-blue-300 sm:text-xl">
+                <h3 className="text-lg font-black tracking-tight text-gray-800 dark:text-gray-100 sm:text-xl">
                   Ready for triage
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                   Type a customer&apos;s message below. Triage will predict the right queue,
                   calculate confidence, and draft a reply — or flag it for human review if it
                   isn&apos;t confident enough.

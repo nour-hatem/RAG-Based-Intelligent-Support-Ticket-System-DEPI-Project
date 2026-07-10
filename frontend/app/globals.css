@@ -19,7 +19,7 @@ body {
   width: 5px;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: oklch(0.55 0.14 255);
+  background: #71717a; /* gray-500 */
   border-radius: 999px;
 }
 .thin-scroll::-webkit-scrollbar-track {
@@ -71,13 +71,13 @@ body {
 .markdown-body code {
   font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
   font-size: 0.8em;
-  background: oklch(0.92 0.03 255 / 0.6);
+  background: rgba(150, 150, 150, 0.15);
   border-radius: 4px;
   padding: 0.1em 0.35em;
 }
 .markdown-body pre {
-  background: oklch(0.15 0.03 255);
-  color: oklch(0.92 0.03 255);
+  background: #1e1f20;
+  color: #e3e3e3;
   border-radius: 8px;
   padding: 0.85em 1em;
   overflow-x: auto;
@@ -92,13 +92,13 @@ body {
   color: inherit;
 }
 .markdown-body blockquote {
-  border-left: 3px solid oklch(0.55 0.14 255);
+  border-left: 3px solid #71717a;
   padding-left: 0.85em;
-  color: var(--foreground-muted, oklch(0.6 0 0));
+  color: #a1a1aa;
   margin: 0.5em 0;
 }
 .markdown-body a {
-  color: oklch(0.55 0.14 255);
+  color: #3b82f6; /* Keep standard link blue */
   text-decoration: underline;
 }
 .markdown-body table {
@@ -109,17 +109,17 @@ body {
 }
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid oklch(0.85 0.03 255 / 0.5);
+  border: 1px solid rgba(150, 150, 150, 0.2);
   padding: 0.4em 0.6em;
   text-align: left;
 }
 .markdown-body th {
-  background: oklch(0.92 0.03 255 / 0.4);
+  background: rgba(150, 150, 150, 0.1);
   font-weight: 600;
 }
 .markdown-body hr {
   border: none;
-  border-top: 1px solid oklch(0.85 0.03 255 / 0.4);
+  border-top: 1px solid rgba(150, 150, 150, 0.2);
   margin: 0.85em 0;
 }
 
@@ -149,9 +149,9 @@ body {
   display: inline-block;
   flex-shrink: 0;
 }
-.status-dot.online  { background: oklch(0.55 0.14 255); box-shadow: 0 0 0 2px oklch(0.55 0.14 255 / 0.25); }
-.status-dot.offline { background: oklch(0.65 0 0); }
+.status-dot.online  { background: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25); }
+.status-dot.offline { background: #ef4444; }
 .status-dot.checking {
-  background: oklch(0.75 0.05 255);
+  background: #6b7280;
   animation: thinking-dot 1.2s infinite;
 }

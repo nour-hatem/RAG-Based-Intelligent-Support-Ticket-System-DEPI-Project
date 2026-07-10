@@ -41,17 +41,17 @@ export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 border-t border-blue-100 bg-white/80 p-3 backdrop-blur-sm dark:border-blue-900/30 dark:bg-gray-950/80 sm:p-4"
+      className="flex flex-col gap-3 border-t border-gray-100 bg-white/80 p-3 backdrop-blur-sm dark:border-white/5 dark:bg-[#131314]/80 sm:p-4"
     >
       {/* Thinking indicator — shown above input while AI responds */}
       {isSending && (
-        <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 dark:border-blue-900/30 dark:bg-blue-950/30">
-          <Spinner size="sm" color="current" />
-          <span className="text-xs text-blue-600 dark:text-blue-400">AI is thinking…</span>
+        <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2 dark:border-white/5 dark:bg-[#1e1f20]/60">
+          <Spinner size="sm" color="current" className="text-gray-600 dark:text-gray-400" />
+          <span className="text-xs text-gray-600 dark:text-gray-400">AI is thinking…</span>
           <span className="flex items-center gap-1 ml-auto">
-            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-blue-400" />
-            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-blue-400" />
-            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-blue-400" />
+            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-gray-400" />
+            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-gray-400" />
+            <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-gray-400" />
           </span>
         </div>
       )}
@@ -63,13 +63,13 @@ export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
         isDisabled={isSending}
         className="flex flex-col gap-1"
       >
-        <Label className="text-xs font-medium text-blue-600/80 dark:text-blue-400/80">
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
           Subject <span className="text-gray-400 font-normal">(optional)</span>
         </Label>
         <Input
           fullWidth
           placeholder="e.g. Refund not received"
-          className="rounded-lg border-blue-200 focus:border-blue-500 dark:border-blue-800/50"
+          className="rounded-xl border-gray-200 focus:border-gray-500 dark:border-white/10 dark:focus:border-gray-400 dark:bg-[#1e1f20]"
         />
       </TextField>
 
@@ -82,7 +82,7 @@ export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
           isRequired
           className="flex flex-1 flex-col gap-1"
         >
-          <Label className="text-xs font-medium text-blue-600/80 dark:text-blue-400/80">
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
             Message
           </Label>
           <TextArea
@@ -90,7 +90,7 @@ export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
             placeholder="Type the customer's message here…"
             maxLength={MAX_BODY_LENGTH}
             rows={3}
-            className="rounded-lg border-blue-200 focus:border-blue-500 dark:border-blue-800/50"
+            className="rounded-xl border-gray-200 focus:border-gray-500 dark:border-white/10 dark:focus:border-gray-400 dark:bg-[#1e1f20]"
           />
           <Description>
             <span className={`text-xs tabular-nums transition-colors ${charColor}`}>
@@ -102,10 +102,9 @@ export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
         {/* Send button */}
         <Button
           type="submit"
-          variant="primary"
           isDisabled={isSending || !body.trim()}
           aria-busy={isSending}
-          className="shrink-0 gap-2 sm:self-end"
+          className="shrink-0 gap-2 sm:self-end bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 font-medium rounded-full h-11 px-6"
         >
           {isSending ? (
             <>
@@ -114,8 +113,8 @@ export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
             </>
           ) : (
             <>
-              <Send size={16} />
               <span className="hidden xs:inline">Send</span>
+              <Send size={16} className="ml-1" />
             </>
           )}
         </Button>

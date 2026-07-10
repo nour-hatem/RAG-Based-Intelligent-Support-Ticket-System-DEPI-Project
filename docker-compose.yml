@@ -1,8 +1,8 @@
 services:
   api:
     build:
-      context: ./backend-api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend-api/Dockerfile
     image: rag-support-ticket-api:latest
     container_name: rag_api
     env_file:
@@ -16,6 +16,9 @@ services:
       retries: 5
       start_period: 45s   # was 30s — a bit more headroom for model init even without network download
     restart: unless-stopped
+    volumes:
+      - ./faiss:/app/faiss:ro
+      - ./data:/app/data:ro
     networks:
       - triage-net
 
@@ -24,9 +27,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Baked in at build time — browser talks to the backend via the
-        # HOST-published port, not the internal Docker DNS name "api".
-        NEXT_PUBLIC_API_URL: "http://localhost:8000"
+        # Baked in at build time — browser talks to the Next.js API routes
+        NEXT_PUBLIC_API_URL: ""
     image: triage-frontend:latest
     container_name: triage_frontend
     environment:
@@ -34,6 +36,7 @@ services:
       # which runs inside the container and CAN reach "api" via Docker DNS.
       BACKEND_API_URL: "http://api:8000"
       BACKEND_API_KEY: "${API_KEY}"   # pull from repo-root .env, must match backend-api/.env's API_KEY
+      HOSTNAME: "0.0.0.0"
     ports:
       - "3000:3000"
     depends_on:

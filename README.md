@@ -4,6 +4,8 @@ An end-to-end support ticket triage system that classifies incoming customer mes
 
 Built as a DEPI graduation capstone project, and deployed live on Azure Container Apps.
 
+**Dataset:** [Tobi-Bueck/customer-support-tickets](https://huggingface.co/datasets/Tobi-Bueck/customer-support-tickets)
+
 **Live demo:** https://triage-frontend.proudplant-cb7f23f0.eastus.azurecontainerapps.io
 
 ---
@@ -76,52 +78,43 @@ The result for each ticket includes the predicted queue, a confidence score, a s
 
 ## Repository structure
 
-```
+```text
 RAG-Based-Intelligent-Support-Ticket-System-DEPI-Project/
-├── data-pipeline/            # Milestone 1 — data cleaning & preprocessing
-│   ├── m1_data_pipeline.ipynb
-│   ├── data/processed/       # train.csv / test.csv used downstream
-│   └── docs/                 # EDA report, preprocessing documentation
+├── src/                       # Single source of truth for all Python code
+│   ├── baseline_models/       # TF-IDF, MLFlow, Evaluation baselines
+│   ├── data_pipeline/         # Data ingestion, cleaning, and splitting scripts
+│   ├── config/                # Pydantic settings, loaded from .env
+│   ├── evaluation/            # Evaluator and metrics logic
+│   ├── models/                # Pydantic and data models (Ticket, RAGResponse)
+│   ├── services/              # Core RAG, LLM, Embedder, and Retriever logic
+│   └── utils/                 # Helper functions
 │
-├── baseline-models/           # Milestone 2 — classification + retrieval baselines
-│   ├── 01_generate_embeddings.py
-│   ├── 02_baseline_model.py       # TF-IDF + Logistic Regression / Random Forest
-│   ├── 02b_tuned_baseline.py      # Hyperparameter-tuned baselines incl. Linear SVM
-│   ├── 03_faiss_index.py          # TF-IDF + TruncatedSVD → FAISS index
-│   ├── 04_evaluation.py           # Retrieval@K, MRR evaluation
-│   ├── 05_mlflow_tracking.py      # MLflow experiment tracking
-│   ├── model/                     # Serialized baseline model
-│   └── reports/                   # Evaluation metrics (see below)
+├── backend-api/               # FastAPI service wrapper
+│   ├── api/                   # FastAPI routers and schemas
+│   ├── tests/                 # Pytest integration tests
+│   ├── Dockerfile             # Container configuration
+│   ├── main.py                # FastAPI application entrypoint
+│   ├── pytest.ini             # Pytest configuration
+│   └── requirements.txt       # Backend dependencies
 │
-├── rag-pipeline/              # RAG pipeline development notebooks
-│
-├── backend-api/               # FastAPI service — production backend
-│   ├── src/
-│   │   ├── main.py                    # App entrypoint, lifespan model loading
-│   │   ├── api/schemas.py             # Request/response models
-│   │   ├── config/settings.py         # Env-driven configuration
-│   │   ├── models/                    # Internal domain models
-│   │   ├── services/
-│   │   │   ├── embedding/             # sentence-transformers wrapper
-│   │   │   ├── retrieval/             # FAISS similarity search
-│   │   │   ├── rerank/                # Optional cross-encoder re-ranking
-│   │   │   └── llm/                   # Groq LLM client
-│   │   └── evaluation/                # Metrics used in offline evaluation
-│   ├── data/processed/                # Baked into the production image
-│   ├── faiss/                         # FAISS index, baked into the production image
+├── frontend/                  # Self-contained Next.js UI application
+│   ├── app/
+│   ├── components/
 │   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── .env.example
+│   └── package.json
 │
-└── frontend/  (separate repo: triage-heroui-frontend)
-    ├── app/
-    │   ├── page.tsx                       # Main triage UI
-    │   ├── layout.tsx
-    │   └── api/tickets/respond/route.ts   # Server-side proxy to the backend
-    ├── components/                        # ChatInput, TicketResult, Sidebar, etc.
-    ├── lib/api.ts                         # Client-side API helper
-    ├── Dockerfile
-    └── next.config.mjs
+├── data/                      # Processed datasets and embeddings
+├── docs/                      # Project documentation
+├── faiss/                     # FAISS vector index
+├── model/                     # Baseline models (pickled)
+├── plots/                     # Visualizations and confusion matrices
+├── reports/                   # Evaluation reports
+├── scripts/                   # Utility scripts (test_rag.py, evaluate_rag.py)
+│
+├── docker-compose.yml         # Docker orchestration
+├── .dockerignore              # Excludes raw data from build contexts
+├── .env.example               # Template for environment variables
+└── README.md                  # This file
 ```
 
 ## Model performance

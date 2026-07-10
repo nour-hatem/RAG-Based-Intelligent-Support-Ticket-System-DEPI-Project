@@ -5,8 +5,15 @@ from src.services.rag.rag_pipeline import RAGPipeline
 from src.evaluation.evaluator import Evaluator
 
 
+from src.services.embedding.embedder import Embedder
+from src.services.retrieval.faiss_retriever import FAISSRetriever
+from src.services.llm.groq_provider import GroqProvider
+
 def main():
-    pipeline = RAGPipeline()
+    embedder = Embedder()
+    retriever = FAISSRetriever()
+    llm = GroqProvider()
+    pipeline = RAGPipeline(embedder=embedder, retriever=retriever, llm_provider=llm)
     evaluator = Evaluator(pipeline)
     results = evaluator.run()
 
