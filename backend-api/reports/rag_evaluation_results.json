@@ -1,0 +1,17 @@
+{
+  "sample_size": 10,
+  "abstained": 0,
+  "abstention_rate": 0.0,
+  "top_k": 5,
+  "model": "llama-3.1-8b-instant",
+  "confidence_threshold": 0.55,
+  "queue_metrics": {
+    "accuracy": 0.9,
+    "weighted_f1": 0.8571
+  },
+  "answer_metrics": {
+    "scored_answers": 10,
+    "mean_bleu": 0.3212,
+    "mean_rouge_l": 0.5108
+  }
+}
